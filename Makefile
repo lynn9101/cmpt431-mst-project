@@ -6,15 +6,15 @@ endif
 CXX = g++
 CXXFLAGS = -std=c++14 -O3 -pthread $(MACRO)
 
-COMMON= core/utils.h core/cxxopts.h core/get_time.h
-SERIAL= spaning_tree_serial
-PARALLEL= spanning_tree_parallel
-ALL= $(SERIAL) $(PARALLEL)
+COMMON= core/utils.h core/graph.h core/edge.h
+SERIAL= spanning_tree_serial
+#PARALLEL= spanning_tree_parallel
+ALL= $(SERIAL) #$(PARALLEL)
 
 
 all : $(ALL)
 
-% : %.cpp $(COMMON)
+$(SERIAL): %: %.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 .PHONY : clean
