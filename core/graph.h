@@ -70,7 +70,11 @@ public:
     Graph(int V) : numVertices(V), mstWeight(-1) {}
 
     void addEdge(Edge e) {
-        graphEdges.push_back(e);
+        if (e.getFirstVertex() < numVertices && e.getSecondVertex() < numVertices) {
+            graphEdges.push_back(e);
+        } else {
+            std::cerr << "One or more of the vertices in this edge don't exist in the graph." << std::endl;
+        }
     }
 
     uintE mstWeight() {
