@@ -6,6 +6,10 @@
 #include <vector>
 #include <algorithm>
 
+// the website/pdf used to understand and adapt the serial version of kruskals is below:
+// https://www.geeksforgeeks.org/kruskals-minimum-spanning-tree-algorithm-greedy-algo-2/
+// https://www.cs.cmu.edu/afs/cs/academic/class/15210-f14/www/lectures/mst.pdf
+// Graph code adapted from assignments 3/4 from earlier in the semester
 
 class UnionFindStructure {
 private:
