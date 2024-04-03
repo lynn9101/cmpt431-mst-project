@@ -64,12 +64,20 @@ private:
     // second element is the pair of vertices which are connected.
     std::vector<Edge> graphEdges;
     int numVertices;
+    uintE mstWeight;
     
 public:
-    Graph(int V) : numVertices(V) {}
+    Graph(int V) : numVertices(V), mstWeight(-1) {}
 
     void addEdge(Edge e) {
         graphEdges.push_back(e);
+    }
+
+    uintE mstWeight() {
+        if(mstWeight == -1) {
+            getMST();
+        }
+        return mstWeight;
     }
 
     std::vector<Edge> getMST() {
@@ -87,6 +95,9 @@ public:
                 minPathWeight += edgeWeight; 
                 result.push_back(e); 
             }
+        }
+        if (minPathWeight < mstWeight) {
+            mstWeight = minPathWeight;
         }
         return result;
     }
