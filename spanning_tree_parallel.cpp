@@ -15,6 +15,31 @@ class ThreadInfo {
     double timeTaken;
 };
 
+// pseudo for filter-kruskals...?
+/*
+Procedure filterKruskal(E, T: Sequence of Edge, P: UnionFind)
+    // Check if the number of edges is less than or equal to a threshold (for parallelizing, can this be the number of edges?)
+    if m is less than or equal to the threshold determined by kruskalThreshold(n, |E|, |T|) then
+        // If the condition is met, apply regular Kruskal's algorithm
+        kruskal(E, T, P)
+    else
+        // Otherwise, proceed with the filtering variant of Kruskal's algorithm
+        // Step 1: Pick a pivot edge 'p' from the set of edges 'E'
+        pick a pivot p from the set of edges E
+        
+        // Step 2: Partition the set of edges 'E' into two subsets based on the pivot edge 'p'
+        E≤ := { edges in E with weights less than or equal to the weight of pivot edge 'p' }
+        E> := { edges in E with weights greater than the weight of pivot edge 'p' }
+        
+        // Step 3: Recursively apply filterKruskal on each subset
+        filterKruskal(E≤, T, P)
+        filterKruskal(E>, T, P)
+        
+        // Step 4: Filter the set 'E>' using the UnionFind data structure 'P'
+        E> := filter(E>, P)
+        // The 'filter' function returns edges from 'E>' such that their endpoints are in different components of 'P'
+*/
+
 int main(int argc, char *argv[]) {
   Graph g(10);
   
