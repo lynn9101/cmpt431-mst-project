@@ -144,6 +144,7 @@ int main(int argc, char *argv[]) {
     }
     std::cout << std::endl << std::endl;
   }
+  // merge all of them in step 1
 
   //std::vector<Edge> res = g.getMST();
   // for (auto e : res) {
