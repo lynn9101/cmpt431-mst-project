@@ -77,7 +77,11 @@ public:
         }
     }
 
-    uintE mstWeight() {
+    std::vector<Edge> getGraphEdges() {
+        return graphEdges;
+    }
+
+    uintE getMstWeight() {
         if(mstWeight == -1) {
             getMST();
         }

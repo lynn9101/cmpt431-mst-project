@@ -5,8 +5,11 @@
 
 class Edge {
 public:
+    Edge() : vertex1(0), vertex2(0), weight(0) {}
     Edge(uintV v1, uintV v2, uintE w)
         : vertex1(v1), vertex2(v2), weight(w) {}
+    Edge(const Edge& other)
+        : vertex1(other.vertex1), vertex2(other.vertex2), weight(other.weight) {}
 
     uintV getFirstVertex() { return vertex1; }
     uintV getSecondVertex() { return vertex2; }

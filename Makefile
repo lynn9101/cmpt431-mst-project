@@ -8,13 +8,15 @@ CXXFLAGS = -std=c++14 -O3 -pthread $(MACRO)
 
 COMMON= core/utils.h core/graph.h core/edge.h
 SERIAL= spanning_tree_serial
-#PARALLEL= spanning_tree_parallel
-ALL= $(SERIAL) #$(PARALLEL)
+PARALLEL= spanning_tree_parallel
+ALL= $(SERIAL) $(PARALLEL)
 
 
 all : $(ALL)
 
-$(SERIAL): %: %.cpp
+# $(SERIAL): %: %.cpp
+# 	$(CXX) $(CXXFLAGS) -o $@ $<
+% : %.cpp $(COMMON)
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 .PHONY : clean

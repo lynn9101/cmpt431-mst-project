@@ -1,19 +1,25 @@
 #include <iomanip>
 #include <iostream>
 #include <stdlib.h>
+#include <thread>
+#include <algorithm>
 
 #include "core/graph.h"
 #include "core/edge.h"
+#include "core/get_time.h"
 
 class ThreadInfo {
   public:
     int threadID;
-    uintV startVertex;
-    uintV endVertex;
-    int numIterations;
-    Graph *g;
+    uintE firstEdgeIndex;
+    uintE lastEdgeIndex;
+    uintE edgeArraySize;
+    Edge *edgeSubsetToBeSorted;
     double timeTaken;
 };
+
+std::vector<std::thread> threads;
+ThreadInfo *threadInformations;
 
 // pseudo for filter-kruskals...?
 /*
@@ -39,8 +45,68 @@ Procedure filterKruskal(E, T: Sequence of Edge, P: UnionFind)
         E> := filter(E>, P)
         // The 'filter' function returns edges from 'E>' such that their endpoints are in different components of 'P'
 */
+// sorts each individual thread's partition of the entire edge set.
+void sortSubsetFunc(void *_threadInfo) {
+  ThreadInfo* threadInfo = static_cast<ThreadInfo*>(_threadInfo);
+
+  // timer t1;
+  // t1.start();
+
+  std::sort(threadInfo->edgeSubsetToBeSorted, threadInfo->edgeSubsetToBeSorted + threadInfo->edgeArraySize);
+  std::cout << "array from " << threadInfo->threadID << " sorted!\n";
+
+  // double timeTaken = t1.stop();
+  //timesTakenPerThread[threadInfo->threadID] = timeTaken;
+}
+
+void createThreads(uintE numThreads, std::vector<Edge> mainEdgeSet) {
+  uintE numEdgesPerThread = mainEdgeSet.size() / numThreads;
+  std::cout << "edges per thread: " << numEdgesPerThread << std::endl;
+  uintE remainderEdges = mainEdgeSet.size() % numThreads;
+  uintE runningStartEdgeCounter = 0;
+  Edge *intermediateArray;
+  for (int i = 0; i < numThreads; i++) {
+    threadInformations[i].threadID = i;
+    std::cout << "information assigned\n";
+    threadInformations[i].firstEdgeIndex = runningStartEdgeCounter;
+    std::cout << "information assigned\n";
+    if (i == 0) {
+      threadInformations[i].lastEdgeIndex = numEdgesPerThread + remainderEdges;
+      std::cout << "information assigned\n";
+      threadInformations[i].edgeArraySize = numEdgesPerThread + remainderEdges;
+      std::cout << "information assigned\n";
+      intermediateArray = new Edge[numEdgesPerThread + remainderEdges];
+      std::cout << "information assigned\n";
+      runningStartEdgeCounter += (numEdgesPerThread + remainderEdges);
+      std::cout << "information assigned\n";
+    } else {
+      threadInformations[i].lastEdgeIndex = numEdgesPerThread;
+      threadInformations[i].edgeArraySize = numEdgesPerThread;
+      intermediateArray = new Edge[numEdgesPerThread];
+      runningStartEdgeCounter += numEdgesPerThread;
+    }
+    std::cout << "information assigned\n";
+    threadInformations[i].timeTaken = 0.0;
+    for (int j = 0; j < threadInformations[i].edgeArraySize; j++) {
+      intermediateArray[j] = mainEdgeSet[threadInformations[i].firstEdgeIndex + j];
+      std::cout << "edge " << threadInformations[i].firstEdgeIndex + j << " added!\n";
+    }
+    threadInformations[i].edgeSubsetToBeSorted = intermediateArray;
+    threads.emplace_back(sortSubsetFunc, &threadInformations[i]);
+    std::cout << "thread " << i << "created!\n";
+  }
+}
+
+void joinThreads() {
+  for (auto &thread : threads) {
+    thread.join();
+  }
+}
 
 int main(int argc, char *argv[]) {
+  //TODO: get numThreads as parameter on command line from user.
+  uintE numThreads = 4;
+  threadInformations = new ThreadInfo[numThreads];
   Graph g(10);
   
   Edge e1(0, 2, 11);
@@ -77,9 +143,20 @@ int main(int argc, char *argv[]) {
   g.addEdge(e15);
   g.addEdge(e16);
 
-  std::vector<Edge> res = g.getMST();
-  for (auto e : res) {
-    std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
+  threadInformations = new ThreadInfo[numThreads];
+  createThreads(numThreads, g.getGraphEdges());
+  joinThreads();
+  for (int i = 0; i < numThreads; i++) {
+    std::cout << "Thread " << i << "'s sorted edge array:" << std::endl;
+    for (int j = 0; j < threadInformations[i].edgeArraySize; j++) {
+      std::cout << threadInformations[i].edgeSubsetToBeSorted[j].getFirstVertex() << " to " << threadInformations[i].edgeSubsetToBeSorted[j].getSecondVertex() << " with weight " << threadInformations[i].edgeSubsetToBeSorted[j].getWeight() << std::endl;
+    }
+    std::cout << std::endl << std::endl;
   }
+
+  //std::vector<Edge> res = g.getMST();
+  // for (auto e : res) {
+  //   std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
+  // }
   return 0;
 }
