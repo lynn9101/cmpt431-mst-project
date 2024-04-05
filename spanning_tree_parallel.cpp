@@ -61,31 +61,23 @@ void sortSubsetFunc(void *_threadInfo) {
 
 void createThreads(uintE numThreads, std::vector<Edge> mainEdgeSet) {
   uintE numEdgesPerThread = mainEdgeSet.size() / numThreads;
-  std::cout << "edges per thread: " << numEdgesPerThread << std::endl;
   uintE remainderEdges = mainEdgeSet.size() % numThreads;
   uintE runningStartEdgeCounter = 0;
   Edge *intermediateArray;
   for (int i = 0; i < numThreads; i++) {
     threadInformations[i].threadID = i;
-    std::cout << "information assigned\n";
     threadInformations[i].firstEdgeIndex = runningStartEdgeCounter;
-    std::cout << "information assigned\n";
     if (i == 0) {
       threadInformations[i].lastEdgeIndex = numEdgesPerThread + remainderEdges;
-      std::cout << "information assigned\n";
       threadInformations[i].edgeArraySize = numEdgesPerThread + remainderEdges;
-      std::cout << "information assigned\n";
       intermediateArray = new Edge[numEdgesPerThread + remainderEdges];
-      std::cout << "information assigned\n";
       runningStartEdgeCounter += (numEdgesPerThread + remainderEdges);
-      std::cout << "information assigned\n";
     } else {
       threadInformations[i].lastEdgeIndex = numEdgesPerThread;
       threadInformations[i].edgeArraySize = numEdgesPerThread;
       intermediateArray = new Edge[numEdgesPerThread];
       runningStartEdgeCounter += numEdgesPerThread;
     }
-    std::cout << "information assigned\n";
     threadInformations[i].timeTaken = 0.0;
     for (int j = 0; j < threadInformations[i].edgeArraySize; j++) {
       intermediateArray[j] = mainEdgeSet[threadInformations[i].firstEdgeIndex + j];
@@ -93,7 +85,6 @@ void createThreads(uintE numThreads, std::vector<Edge> mainEdgeSet) {
     }
     threadInformations[i].edgeSubsetToBeSorted = intermediateArray;
     threads.emplace_back(sortSubsetFunc, &threadInformations[i]);
-    std::cout << "thread " << i << "created!\n";
   }
 }
 
