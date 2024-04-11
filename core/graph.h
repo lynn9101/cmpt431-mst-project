@@ -77,7 +77,19 @@ public:
         }
     }
 
-    uintE mstWeight() {
+    std::vector<Edge> getGraphEdges() {
+        return graphEdges;
+    }
+
+    void assignEdgeSet(std::vector<Edge> edges) {
+        graphEdges = edges;
+    }
+
+    void sort() {
+        std::sort(graphEdges.begin(), graphEdges.end());
+    }
+
+    uintE getMstWeight() {
         if(mstWeight == -1) {
             getMST();
         }
@@ -86,7 +98,6 @@ public:
 
     std::vector<Edge> getMST() {
         std::vector<Edge> result;
-        std::sort(graphEdges.begin(), graphEdges.end());
         uintE minPathWeight = 0;
         UnionFindStructure unionFindStructure(numVertices);
         for (Edge e : graphEdges) {

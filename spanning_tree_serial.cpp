@@ -4,6 +4,7 @@
 
 #include "core/graph.h"
 #include "core/edge.h"
+#include "core/get_time.h"
 
 //todo: add script that perhaps adds graphs/edges better, for testing purposes?
 int main(int argc, char *argv[]) {
@@ -43,9 +44,13 @@ int main(int argc, char *argv[]) {
   g.addEdge(e15);
   g.addEdge(e16);
 
+  timer t1;
+  t1.start();
+  g.sort();
   std::vector<Edge> res = g.getMST();
   for (auto e : res) {
     std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
   }
+  std::cout << "Time taken overall: " << t1.stop() << std::endl;
   return 0;
 }
