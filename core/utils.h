@@ -16,7 +16,7 @@
 #define intE int32_t
 #define uintE int32_t
 
-#define DEFAULT_NUMBER_OF_THREADS "1"
+#define DEFAULT_NUMBER_OF_THREADS "2"
 #define DEFAULT_NUMBER_OF_VERTICES "10"
 #define DEFAULT_MAX_ITER "10"
 #define TIME_PRECISION 5
