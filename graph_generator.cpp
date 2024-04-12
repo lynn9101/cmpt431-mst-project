@@ -8,7 +8,7 @@
 using namespace std;
 
 // Define the maximum weight of edges
-#define MAX_WEIGHT 50
+#define MAX_WEIGHT 20
 
 void generateRandomGraph(uint n_vertices) {
     set<pair<uint, uint>> container;
@@ -27,11 +27,9 @@ void generateRandomGraph(uint n_vertices) {
     std::random_device rd;
     mt19937 mt(rd());
     std::uniform_real_distribution<double> edge_distribution(0, 1);
-    std::uniform_int_distribution<int> weight_distribution(0, MAX_WEIGHT);
+    std::uniform_int_distribution<int> weight_distribution(1, MAX_WEIGHT);
 
     // Start generating graph
-    // First print the number of vertices
-    printf("%d\n", n_vertices);
     uint n_edges = 0;
 
     for (uint i = 0; i < n_vertices; i++) {
@@ -44,7 +42,8 @@ void generateRandomGraph(uint n_vertices) {
             }
         }
     }
-    printf("%d\n", n_edges);
+    // First print the number of vertices and edges
+    printf("%d %d\n", n_vertices, n_edges);
 
     // Then print the edges of the form (a b)
     // where 'a' is connected to 'b'
@@ -65,7 +64,7 @@ int main(int argc, char *argv[]) {
         "",
         {
             {"nVertices", "Number of Vertices",
-                cxxopts::value<uint>()->default_value(DEFAULT_NUMBER_OF_THREADS)},
+                cxxopts::value<uint>()->default_value(DEFAULT_NUMBER_OF_VERTICES)},
         });
     auto cl_options = options.parse(argc, argv);
     uint n_vertices = cl_options["nVertices"].as<uint>();
