@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "cxxopts.h"
+#include "get_time.h"
 #include <atomic>
 #include <condition_variable>
 #include <iostream>

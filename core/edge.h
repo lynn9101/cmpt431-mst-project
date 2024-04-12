@@ -3,6 +3,7 @@
 
 #include "utils.h"
 
+// Undirected, weighted edge
 class Edge {
 public:
     Edge() : vertex1(0), vertex2(0), weight(0) {}
