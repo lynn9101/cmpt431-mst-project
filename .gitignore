@@ -1,3 +1,4 @@
 # insert executables here just in case
 spanning_tree_serial
 spanning_tree_parallel
+spanning_tree_mpi
