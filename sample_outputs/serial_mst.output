@@ -1,0 +1,14 @@
+Reading graph from file : ./graph_inputs/random_10.txt
+Created graph
+Minimum spanning tree
+2 to 9 with weight 1
+6 to 7 with weight 4
+2 to 6 with weight 4
+2 to 5 with weight 5
+0 to 9 with weight 6
+1 to 8 with weight 7
+1 to 9 with weight 7
+1 to 4 with weight 9
+3 to 5 with weight 13
+Sum of weights in MST : 56
+Time taken (in seconds) : 4.3869e-05

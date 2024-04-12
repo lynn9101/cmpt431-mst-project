@@ -7,11 +7,12 @@ CXX = g++
 MPICXX = mpic++
 CXXFLAGS = -std=c++14 -O3 -pthread $(MACRO)
 
-COMMON= core/utils.h core/graph.h core/edge.h
+COMMON= core/utils.h core/graph.h core/edge.h core/cxxopts.h core/get_time.h
+SCRIPT= graph_generator
 SERIAL= spanning_tree_serial
 PARALLEL= spanning_tree_parallel
 MPI= spanning_tree_mpi
-ALL= $(SERIAL) $(PARALLEL) $(MPI)
+ALL= $(SCRIPT) $(SERIAL) $(PARALLEL) $(MPI)
 
 
 all : $(ALL)

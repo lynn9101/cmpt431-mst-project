@@ -9,7 +9,7 @@
 #include "core/get_time.h"
 
 class ThreadInfo {
-  public:
+public:
     int threadID;
     uintE edgeArraySize;
     std::vector<Edge> edgeSubsetToBeSorted;
@@ -45,119 +45,187 @@ Procedure filterKruskal(E, T: Sequence of Edge, P: UnionFind)
 */
 // sorts each individual thread's partition of the entire edge set.
 void sortSubsetFunc(void *_threadInfo) {
-  ThreadInfo* threadInfo = static_cast<ThreadInfo*>(_threadInfo);
+    ThreadInfo* threadInfo = static_cast<ThreadInfo*>(_threadInfo);
 
-  // timer t1;
-  // t1.start();
+    // timer t1;
+    // t1.start();
 
-  std::sort(threadInfo->edgeSubsetToBeSorted.begin(), threadInfo->edgeSubsetToBeSorted.end());
+    std::sort(threadInfo->edgeSubsetToBeSorted.begin(), threadInfo->edgeSubsetToBeSorted.end());
 
-  // double timeTaken = t1.stop();
-  //timesTakenPerThread[threadInfo->threadID] = timeTaken;
+    // double timeTaken = t1.stop();
+    //timesTakenPerThread[threadInfo->threadID] = timeTaken;
 }
 
 void createThreads(uintE numThreads, std::vector<Edge> mainEdgeSet) {
-  std::vector<Edge> firstHalf(mainEdgeSet.begin(), mainEdgeSet.begin() + (mainEdgeSet.size() / 2));
-  std::vector<Edge> secondHalf(mainEdgeSet.begin() + (mainEdgeSet.size() / 2), mainEdgeSet.end());
-  uintE numEdgesPerThread = mainEdgeSet.size() / numThreads;
-  uintE remainderEdges = mainEdgeSet.size() % numThreads;
-  threadInformations[0].edgeArraySize = numEdgesPerThread + remainderEdges;
-  threadInformations[0].edgeSubsetToBeSorted = firstHalf;
-  threadInformations[0].threadID = 0;
-  threadInformations[0].timeTaken = 0.0;
-  threads.emplace_back(sortSubsetFunc, &threadInformations[0]);
-  threadInformations[1].edgeArraySize = numEdgesPerThread;
-  threadInformations[1].edgeSubsetToBeSorted = secondHalf;
-  threadInformations[1].threadID = 1;
-  threadInformations[1].timeTaken = 0.0;
-  threads.emplace_back(sortSubsetFunc, &threadInformations[1]);
+    std::vector<Edge> firstHalf(mainEdgeSet.begin(), mainEdgeSet.begin() + (mainEdgeSet.size() / 2));
+    std::vector<Edge> secondHalf(mainEdgeSet.begin() + (mainEdgeSet.size() / 2), mainEdgeSet.end());
+
+    uintE numEdgesPerThread = mainEdgeSet.size() / numThreads;
+    uintE remainderEdges = mainEdgeSet.size() % numThreads;
+    threadInformations[0].edgeArraySize = numEdgesPerThread + remainderEdges;
+    threadInformations[0].edgeSubsetToBeSorted = firstHalf;
+    threadInformations[0].threadID = 0;
+    threadInformations[0].timeTaken = 0.0;
+    threads.emplace_back(sortSubsetFunc, &threadInformations[0]);
+    threadInformations[1].edgeArraySize = numEdgesPerThread;
+    threadInformations[1].edgeSubsetToBeSorted = secondHalf;
+    threadInformations[1].threadID = 1;
+    threadInformations[1].timeTaken = 0.0;
+    threads.emplace_back(sortSubsetFunc, &threadInformations[1]);
 }
 
 void joinThreads() {
-  for (auto &thread : threads) {
-    thread.join();
-  }
+    for (auto &thread : threads) {
+        thread.join();
+    }
 }
 
 std::vector<Edge> mergeSubsets() {
-  std::vector<Edge> result;
-  uint firstHalfArrayIndex = 0;
-  uint secondHalfArrayIndex = 0;
-  while (firstHalfArrayIndex < threadInformations[0].edgeArraySize && secondHalfArrayIndex < threadInformations[1].edgeArraySize) {
-    if (threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex].getWeight() < threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex].getWeight()) {
-      result.push_back(threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex]);
-      firstHalfArrayIndex++;
-    } else {
-      result.push_back(threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex]);
-      secondHalfArrayIndex++;
+    std::vector<Edge> result;
+    uint firstHalfArrayIndex = 0;
+    uint secondHalfArrayIndex = 0;
+    while (firstHalfArrayIndex < threadInformations[0].edgeArraySize && secondHalfArrayIndex < threadInformations[1].edgeArraySize) {
+        if (threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex].getWeight() < threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex].getWeight()) {
+            result.push_back(threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex]);
+            firstHalfArrayIndex++;
+        } else {
+          result.push_back(threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex]);
+          secondHalfArrayIndex++;
+        }
     }
-  }
-  while (firstHalfArrayIndex < threadInformations[0].edgeArraySize) {
-    result.push_back(threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex]);
-    firstHalfArrayIndex++;
-  }
+    while (firstHalfArrayIndex < threadInformations[0].edgeArraySize) {
+        result.push_back(threadInformations[0].edgeSubsetToBeSorted[firstHalfArrayIndex]);
+        firstHalfArrayIndex++;
+    }
 
-  while (secondHalfArrayIndex < threadInformations[1].edgeArraySize) {
-    result.push_back(threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex]);
-    secondHalfArrayIndex++;
-  }
+    while (secondHalfArrayIndex < threadInformations[1].edgeArraySize) {
+        result.push_back(threadInformations[1].edgeSubsetToBeSorted[secondHalfArrayIndex]);
+        secondHalfArrayIndex++;
+    }
 
-  return result;
+    return result;
+}
+
+struct MinSpanningTree {
+    std::vector<Edge> tree;
+    uintE sumWeight;
+};
+
+// the website/pdf used to understand and adapt the serial version of kruskals is below:
+// https://www.geeksforgeeks.org/kruskals-minimum-spanning-tree-algorithm-greedy-algo-2/
+// https://www.cs.cmu.edu/afs/cs/academic/class/15210-f14/www/lectures/mst.pdf
+// Graph code adapted from assignments 3/4 from earlier in the semester
+class UnionFindStructure {
+private:
+    int *parent;
+    int *rank;
+public:
+    UnionFindStructure(int numVertices) {
+        parent = new int[numVertices];
+        rank = new int[numVertices];
+
+        for (int i = 0; i < numVertices; i++) { 
+            parent[i] = -1; 
+            rank[i] = 1; 
+        }
+    }
+
+    ~UnionFindStructure() {
+        delete parent;
+        delete rank;
+    }
+    
+    //function to detect cycles in the graph
+    int find(int i) {
+        if (parent[i] == -1) {
+            return i;
+        }
+        return parent[i] = find(parent[i]);
+    }
+
+    void kruskalUnion(uintV firstVertex, uintV secondVertex) {
+        int firstV = find(firstVertex);
+        int secondV = find(secondVertex);
+
+        if (firstV != secondV) { 
+            if (rank[firstV] < rank[secondV]) { 
+                parent[firstV] = secondV; 
+            } 
+            else if (rank[firstV] > rank[secondV]) { 
+                parent[secondV] = firstV; 
+            } 
+            else { 
+                parent[secondV] = firstV; 
+                rank[firstV]++; 
+            } 
+        }
+    }
+};
+
+MinSpanningTree get_minimum_spanning_tree_serial(Graph g) {
+    std::vector<Edge> result;
+    uintE minPathWeight = 0;
+    UnionFindStructure unionFindStructure(g.getNumVertices());
+
+    for (Edge e : g.getGraphEdges()) {
+        uintE edgeWeight = e.getWeight();
+        uintV firstVertex = e.getFirstVertex();
+        uintV secondVertex = e.getSecondVertex();
+
+        if (unionFindStructure.find(firstVertex) != unionFindStructure.find(secondVertex)) { 
+            unionFindStructure.kruskalUnion(firstVertex, secondVertex); 
+            minPathWeight += edgeWeight; 
+            result.push_back(e); 
+        }
+    }
+
+    return {result, minPathWeight};
 }
 
 int main(int argc, char *argv[]) {
-  //TODO: get numThreads as parameter on command line from user.
-  uintE numThreads = 2;
-  threadInformations = new ThreadInfo[numThreads];
-  Graph g(10);
-  
-  Edge e1(0, 2, 11);
-  Edge e2(1, 6, 3);
-  Edge e3(1, 4, 5);
-  Edge e4(2, 9, 10);
-  Edge e5(5, 2, 1);
-  Edge e6(5, 4, 6);
-  Edge e7(7, 1, 15);
-  Edge e8(9, 5, 8);
-  Edge e9(4, 7, 4);
-  Edge e10(8, 5, 4);
-  Edge e11(0, 5, 8);
-  Edge e12(6, 5, 16);
-  Edge e13(7, 2, 13);
-  Edge e14(1, 5, 11);
-  Edge e15(3, 8, 1);
-  Edge e16(3, 5, 3);
+    cxxopts::Options options(
+        "spanning_tree_parallel",
+        "Calculate minimum spanning using parallel execution");
 
-  g.addEdge(e1);
-  g.addEdge(e2);
-  g.addEdge(e3);
-  g.addEdge(e4);
-  g.addEdge(e5);
-  g.addEdge(e6);
-  g.addEdge(e7);
-  g.addEdge(e8);
-  g.addEdge(e9);
-  g.addEdge(e10);
-  g.addEdge(e11);
-  g.addEdge(e12);
-  g.addEdge(e13);
-  g.addEdge(e14);
-  g.addEdge(e15);
-  g.addEdge(e16);
-  timer t1;
-  t1.start();
-  threadInformations = new ThreadInfo[numThreads];
-  createThreads(numThreads, g.getGraphEdges());
-  joinThreads();
-  g.assignEdgeSet(mergeSubsets());
-  
-  // i think merging needs to be done serially
-  // merge all of them in step 1, maybe using 2 threads by default?
+    options.add_options(
+        "",
+        {
+            {"nThreads", "Number of Threads",
+                cxxopts::value<uint>()->default_value(DEFAULT_NUMBER_OF_THREADS)},
+            {"inputFile", "Input graph file path",
+                cxxopts::value<std::string>()->default_value(
+                  "./graph_inputs/random_10.txt")},
+        });
+    auto cl_options = options.parse(argc, argv);
+    uint n_threads = cl_options["nThreads"].as<uint>();
+    std::string input_file_path = cl_options["inputFile"].as<std::string>();
 
-  std::vector<Edge> res = g.getMST();
-  for (auto e : res) {
-    std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
-  }
-  std::cout << "Time taken overall: " << t1.stop() << std::endl;
+    std::cout << "Number of Threads : " << n_threads << std::endl;
+    if (n_threads < 1) {
+        std::cout << "Error: Number of threads or number of iterations must be at least or greater than 1.\n";
+        return 0;
+    }
+
+    Graph g;
+    g.loadGraphFromFile(input_file_path);
+    std::cout << "Created graph\n";
+
+    timer t1;
+    t1.start();
+    threadInformations = new ThreadInfo[n_threads];
+    createThreads(n_threads, g.getGraphEdges());
+    joinThreads();
+    g.assignEdgeSet(mergeSubsets());
+    
+    // i think merging needs to be done serially
+    // merge all of them in step 1, maybe using 2 threads by default?
+    MinSpanningTree mst = get_minimum_spanning_tree_serial(g);
+    std::vector<Edge> resultTreeEdges = mst.tree;
+    std::cout << "Minimum spanning tree\n";
+    for (auto e : resultTreeEdges) {
+      std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
+    }
+    std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
+    std::cout << "Time taken (in seconds) : " << t1.stop() << std::endl;
   return 0;
 }

@@ -3,9 +3,10 @@
 
 #include "utils.h"
 
+// Undirected, weighted edge
 class Edge {
 public:
-    Edge() : vertex1(0), vertex2(0), weight(0) {}
+    Edge() = default;
     Edge(uintV v1, uintV v2, uintE w)
         : vertex1(v1), vertex2(v2), weight(w) {}
     Edge(const Edge& other)

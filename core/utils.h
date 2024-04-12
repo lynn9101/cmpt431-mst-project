@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include "cxxopts.h"
+#include "get_time.h"
 #include <atomic>
 #include <condition_variable>
 #include <iostream>
@@ -14,7 +16,8 @@
 #define intE int32_t
 #define uintE int32_t
 
-#define DEFAULT_NUMBER_OF_THREADS "1"
+#define DEFAULT_NUMBER_OF_THREADS "2"
+#define DEFAULT_NUMBER_OF_VERTICES "10"
 #define DEFAULT_MAX_ITER "10"
 #define TIME_PRECISION 5
 #define VAL_PRECISION 14
