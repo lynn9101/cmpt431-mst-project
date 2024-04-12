@@ -225,6 +225,6 @@ int main(int argc, char **argv)
     // Graph g = createGraph(10);
     g.loadGraphFromFile(input_file_path);
 
-    boruvkasAlgorithmMPI(g.getGraphEdges(), 10, world_rank, world_size);
+    boruvkasAlgorithmMPI(g.getGraphEdges(), g.getNumVertices(), world_rank, world_size);
     return 0;
 }
