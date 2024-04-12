@@ -20,6 +20,20 @@ Implementing Boruvka's Algorithm in Parallel using MPI.
     must be the number of vertices to begin the algorithm. (implement an error check)
 - each process(component) then will find the smallest edge which connects it to another component.
 - We then merge the two components, and then repeat the above steps until we only have one complete component.
+
+Thought of steps, adapted from the link mentioned above (can be changed if some are found to be wrong)
+1. Initialize MPI environment. DONE
+2. Divide vertices among MPI processes. DONE
+3. Initialize local data structures (subsets, cheapest edges). DONE
+4. while (multiple connected components exist - more than one component altogether):
+    Each process computes the cheapest edges for its vertices locally. DONE
+    Exchange information about cheapest edges with other processes. (probably done via broadcast?) - look at friday.
+    Update local data structures based on received information. DONE...?
+    Check for termination condition (if there is one component left)
+9. Gather MST edges from all processes and construct the final MST.
+10. Output the final MST.
+11. Finalize MPI environment.
+
 */
 
 Graph createGraph(int numVertices) {
@@ -83,6 +97,7 @@ void unionSets(Subset subsets[], int x, int y) {
 }
 
 void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_rank, int world_size) {
+    std::vector<Edge> mstEdgesSelected;
     std::vector<Edge> localEdges;
 
     //assign edges to each process; root one gets the remainder.
@@ -96,7 +111,7 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
         std::cout << "world rank: " << world_rank << " with edge: " << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
 
     Subset* subsets = new Subset[numVertices];
     int* cheapest = new int[numVertices];
@@ -108,9 +123,12 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
         cheapest[v] = -1;
     }
 
+    //MPI_Barrier(MPI_COMM_WORLD);
+
     // in the beginning, each process is aware that there are |V| components.
+    // I think this needs to be global...
     int numSubtreesRemaining = numVertices;
-    int mstWeight = 0;
+    int localMstWeight = 0;
 
     while (numSubtreesRemaining > 1) {
         // iterate through all the edges in the given subset 'localEdges' and 
@@ -120,34 +138,25 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
             int set2 = find(subsets, localEdges[i].getSecondVertex());
 
             if (set1 != set2) {
-                if (cheapest[set1] == -1 || edges[cheapest[set1]].getWeight() > localEdges[i].getWeight())
-                    cheapest[set1] = i;
-                if (cheapest[set2] == -1 || edges[cheapest[set2]].getWeight() > localEdges[i].getWeight())
-                    cheapest[set2] = i;
+                if (cheapest[set1] == -1 || localEdges[cheapest[set1]].getWeight() > localEdges[i].getWeight())
+                cheapest[set1] = i;
+                if (cheapest[set2] == -1 || localEdges[cheapest[set2]].getWeight() > localEdges[i].getWeight())
+                cheapest[set2] = i;
             }
         }
-
+        
         // synchronization phase?
-        int* globalCheapest = new int[numVertices * world_size];
-        MPI_Allgather(cheapest, numVertices, MPI_INT, globalCheapest, numVertices, MPI_INT, MPI_COMM_WORLD);
 
         // iterate through all the subsets and if a minimum weighted edge exists for a subset, 
         // we add it to the selectedEdges vector, update the MSTWeight, perform the union of the subsets, and decrement the numTrees.
+        // TODO: I think we have to broadcast to all other processes when subtrees decreases?
         for (int v = 0; v < numVertices; v++) {
-            int minEdge = -1;
-            for (int p = 0; p < world_size; p++) {
-                int curEdge = globalCheapest[p * numVertices + v];
-                if (curEdge != -1 && (minEdge == -1 || localEdges[curEdge].getWeight() < localEdges[minEdge].getWeight())) {
-                    minEdge = curEdge;
-                }
-            }
-
-            if (minEdge != -1) {
-                int set1 = find(subsets, localEdges[minEdge].getFirstVertex());
-                int set2 = find(subsets, localEdges[minEdge].getSecondVertex());
-
+            if (cheapest[v] != -1) {
+                int set1 = find(subsets, localEdges[cheapest[v]].getFirstVertex());
+                int set2 = find(subsets, localEdges[cheapest[v]].getSecondVertex());
                 if (set1 != set2) {
-                    mstWeight += localEdges[minEdge].getWeight();
+                    mstEdgesSelected.push_back(localEdges[cheapest[v]]);
+                    localMstWeight += edges[cheapest[v]].getWeight();
                     unionSets(subsets, set1, set2);
                     numSubtreesRemaining--;
                 }
@@ -155,22 +164,15 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
                 cheapest[v] = -1;
             }
         }
-
-        delete[] globalCheapest;
+        
     }
     
-    //since each process will have its own mst weight after unioning everything, we must gather those numbers
-    //and use them in the root process.
-    int* allMSTWeights = new int[world_size];
-    MPI_Gather(&mstWeight, 1, MPI_INT, allMSTWeights, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
+    //since each process will have its own mst weight after unioning everything, will we have to gather the weights? maybe not?
+    //maybe send to root?
+    
     //if we have the root process, then we print the MST accordingly.
     if (world_rank == 0) {
-        int totalMSTWeight = 0;
-        for (int i = 0; i < world_size; i++) {
-            totalMSTWeight += allMSTWeights[i];
-        }
-        std::cout << "Total Minimum Spanning Tree Weight: " << totalMSTWeight << std::endl;
+        //std::cout << "Total Minimum Spanning Tree Weight: " << totalMSTWeight << std::endl;
     }
 }
 
@@ -184,6 +186,6 @@ int main() {
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-    boruvkasAlgorithmMPI(g.getGraphEdges(), world_size, world_rank, world_size);
+    boruvkasAlgorithmMPI(g.getGraphEdges(), 10, world_rank, world_size);
     return 0;
 }
