@@ -1,5 +1,14 @@
+constexpr int UNSET_ELEMENT = -1;
+
 // Define the structure to represent a subset for union-find
-struct Subset {
-   int parent;
-   int rank;
+class Subset {
+   public:
+      int numElements;
+      std::vector<int> parent;
+      std::vector<int> rank;
+
+      Subset(int elements) : numElements(elements), parent(elements, UNSET_ELEMENT), rank(elements, 0) {
+
+      }
+
 };
