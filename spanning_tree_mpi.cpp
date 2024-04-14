@@ -91,6 +91,16 @@ int find(Subset subsets[], int i)
     return subsets[i].parent;
 }
 
+int findSet(const Set* set, const int vertex) {
+	if (set->canonicalElements[vertex] == UNSET_ELEMENT) {
+		return vertex;
+	} 
+	else {
+		set->canonicalElements[vertex] = findSet(set,set->canonicalElements[vertex]);
+		return set->canonicalElements[vertex];
+	}
+}
+
 // Function to perform union of two subsets using union by rank
 void unionSets(Subset subsets[], int x, int y)
 {
@@ -105,6 +115,17 @@ void unionSets(Subset subsets[], int x, int y)
         subsets[yroot].parent = xroot;
         subsets[xroot].rank++;
     }
+}
+
+// // copy an edge
+// void copyEdge(int* to, int* from) {
+// 	memcpy(to, from, 3 * sizeof(int));
+// }
+
+// copy an edge
+void copyEdge(Edge* copyDestination, Edge* copySource) {
+    //not sure if it should be 3 * sizeof(int)...
+	memcpy(copyDestination, copySource, 3 * sizeof(int));
 }
 
 void distributeAndScatterEdges(std::vector<Edge> &edges, std::vector<Edge> &localEdges, int world_rank, int world_size)
@@ -184,25 +205,34 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
 		}
 
 		// find closestEdge
-		for (int j = 0; j < edgesPart; j++) {
+        //not sure if that is the right substitution?
+		//for (int j = 0; j < edgesPart; j++) {
+        for (int j = 0; j < localEdges.size(); j++) {
 			//int* currentEdge = &edgeListPart[j * 3];
             Edge *currentEdge = &localEdges[j];
 			//int canonicalElements[2] = { findSet(set, currentEdge[0]), findSet(set, currentEdge[1]) };
-            int canonicalElements[2] = { findSet(set, currentEdge.getFirstVertex()), findSet(set, currentEdge.getSecondVertex()) }
+
+            //THIS IS AN ARRAY THATS NOT PART OF THE SET
+            int localCanonicalElements[2] = { findSet(set, currentEdge.getFirstVertex()), findSet(set, currentEdge.getSecondVertex()) }
 
             // WTF IS A CANONICAL EDGE ?!?!?!?!??!?!?!?!?
 			// eventually update closestEdge
-			if (canonicalElements[0] != canonicalElements[1]) {
+			if (localCanonicalElements[0] != localCanonicalElements[1]) {
 				for (int k = 0; k < 2; k++) {
-					bool closestEdgeNotSet = closestEdge[canonicalElements[k]* 3 + 2] == INT_MAX;
-					bool weightSmaller = currentEdge[2] < closestEdge[canonicalElements[k] * 3	+ 2];
+					//bool closestEdgeNotSet = closestEdge[canonicalElements[k]* 3 + 2] == INT_MAX;
+                    bool closestEdgeNotSet = closestEdgeNotSet[localCanonicalElements[k]].getWeight() == INT_MAX;
+					//bool weightSmaller = currentEdge[2] < closestEdge[canonicalElements[k] * 3	+ 2];
+                    bool weightSmaller = currentEdge.getWeight() < closestEdge[localCanonicalElements[k]].getWeight();
 					if (closestEdgeNotSet || weightSmaller) {
-						copyEdge(&closestEdge[canonicalElements[k] * 3],currentEdge);
+                        // i dont think this is the rigth mapping
+						//copyEdge(&closestEdge[canonicalElements[k] * 3],currentEdge);
+                        copyEdge(&closestEdge[canonicalElements[k]], currentEdge);
 					}
 				}
 			}
 		}
 
+        //no real clue whats going on here
 		if (parallel) {
 			int from;
 			int to;
@@ -233,16 +263,20 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
 		// add new edges to MST
 		for (int j = 0; j < vertices; j++) {
 			if (closestEdge[j * 3 + 2] != INT_MAX) {
+                //
 				int from = closestEdge[j * 3];
 				int to = closestEdge[j * 3 + 1];
 
 				// prevent adding the same edge twice
-				if (findSet(set, from) != findSet(set, to)) {
-					if (rank == 0) {
+				//if (findSet(set, from) != findSet(set, to)) {
+                if (findSet(set, closestEdge[j].getFirstVertex()) != findSet(set, closestEdge[j].getSecondVertex())) {
+					//if (rank == 0) {
+                    if (world_rank == 0) {
 						copyEdge(&mst->edgeList[edgesMST * 3],&closestEdge[j * 3]);
 					}
 					edgesMST++;
-					unionSet(set, from, to);
+					//unionSet(set, from, to);
+                    unionSet(set, closestEdge[j].getFirstVertex(), closestEdge.getSecondVertex());
 				}
 			}
 		}
