@@ -14,27 +14,6 @@ struct MinSpanningTree {
     uintE sumWeight;
 };
 
-// First each vertex of the graph is initialized as a component by itself
-struct Component {
-    uintV root;
-};
-
-// R
-uintV findRoot(const std::vector<Component>& components, uintV v) {
-    if (components[v].root == v) {
-        return v;
-    }
-    return findRoot(components, components[v].root);
-}
-
-void boruvkaUnion(std::vector<Component>& components, uintV c1, uintV c2) {
-    if (c1 > c2) {
-        components[c2].root = c1;
-    } else {
-        components[c1].root = c2;
-    }
-}
-
 class UnionFindStructure {
 private:
     int *parent;
@@ -115,7 +94,6 @@ MinSpanningTree sequentialBoruvka(Graph g) {
         }
 
         // Step 2: Merge components
-        //bool merged = false;
         for (int v = 0; v < g.getNumVertices(); ++v) {
             if (minimum[v].getWeight() != -1) {
                 uintE edgeWeight = minimum[v].getWeight();
@@ -178,6 +156,5 @@ int main(int argc, char *argv[]) {
     std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
     std::cout << "Time taken (in seconds) : " << t1.stop() << std::endl;
 
-    
     return 0;
 }

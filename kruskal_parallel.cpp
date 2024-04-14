@@ -227,5 +227,5 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
     std::cout << "Time taken (in seconds) : " << t1.stop() << std::endl;
-  return 0;
+    return 0;
 }
