@@ -8,7 +8,7 @@ CXXFLAGS = -std=c++14 -O3 -pthread $(MACRO)
 
 COMMON= core/utils.h core/graph.h core/edge.h core/cxxopts.h core/get_time.h
 SCRIPT= graph_generator
-SERIAL= spanning_tree_serial
+SERIAL= spanning_tree_serial boruvka_serial
 PARALLEL= spanning_tree_parallel
 ALL= $(SCRIPT) $(SERIAL) $(PARALLEL)
 

@@ -216,17 +216,16 @@ int main(int argc, char *argv[]) {
     createThreads(n_threads, g.getGraphEdges());
     joinThreads();
     g.assignEdgeSet(mergeSubsets());
-    g.printGraph();
     
     // i think merging needs to be done serially
     // merge all of them in step 1, maybe using 2 threads by default?
-    // MinSpanningTree mst = get_minimum_spanning_tree_serial(g);
-    // std::vector<Edge> resultTreeEdges = mst.tree;
-    // std::cout << "Minimum spanning tree\n";
-    // for (auto e : resultTreeEdges) {
-    //   std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
-    // }
-    // std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
-    // std::cout << "Time taken (in seconds) : " << t1.stop() << std::endl;
+    MinSpanningTree mst = get_minimum_spanning_tree_serial(g);
+    std::vector<Edge> resultTreeEdges = mst.tree;
+    std::cout << "Minimum spanning tree\n";
+    for (auto e : resultTreeEdges) {
+      std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
+    }
+    std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
+    std::cout << "Time taken (in seconds) : " << t1.stop() << std::endl;
   return 0;
 }
