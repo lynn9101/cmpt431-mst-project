@@ -15,6 +15,10 @@ public:
     uintV getSecondVertex() { return vertex2; }
     uintE getWeight() const { return weight; }
 
+    void setWeight(int newWeight) {
+        this->weight = newWeight;
+    }
+
 private:
     uintV vertex1;
     uintV vertex2;
