@@ -76,11 +76,12 @@ Graph createGraph(int numVertices)
     return res;
 }
 
-void newSet(Set* set, const int elements) {
-	set->elements = elements;
-	set->canonicalElements = (int*) malloc(elements * sizeof(int)); // maintain parent 
-	memset(set->canonicalElements, UNSET_ELEMENT, elements * sizeof(int));
-	set->rank = (int*) calloc(elements, sizeof(int)); //  maintain rank
+void newSet(Set *set, const int elements)
+{
+    set->elements = elements;
+    set->canonicalElements = (int *)malloc(elements * sizeof(int)); // maintain parent
+    memset(set->canonicalElements, UNSET_ELEMENT, elements * sizeof(int));
+    set->rank = (int *)calloc(elements, sizeof(int)); //  maintain rank
 }
 
 // Function to find the subset of an element using path compression
@@ -91,14 +92,17 @@ int find(Subset subsets[], int i)
     return subsets[i].parent;
 }
 
-int findSet(const Set* set, const int vertex) {
-	if (set->canonicalElements[vertex] == UNSET_ELEMENT) {
-		return vertex;
-	} 
-	else {
-		set->canonicalElements[vertex] = findSet(set,set->canonicalElements[vertex]);
-		return set->canonicalElements[vertex];
-	}
+int findSet(const Set *set, const int vertex)
+{
+    if (set->canonicalElements[vertex] == UNSET_ELEMENT)
+    {
+        return vertex;
+    }
+    else
+    {
+        set->canonicalElements[vertex] = findSet(set, set->canonicalElements[vertex]);
+        return set->canonicalElements[vertex];
+    }
 }
 
 // Function to perform union of two subsets using union by rank
@@ -123,9 +127,10 @@ void unionSets(Subset subsets[], int x, int y)
 // }
 
 // copy an edge
-void copyEdge(Edge* copyDestination, Edge* copySource) {
-    //not sure if it should be 3 * sizeof(int)...
-	memcpy(copyDestination, copySource, 3 * sizeof(int));
+void copyEdge(Edge *copyDestination, Edge *copySource)
+{
+    // not sure if it should be 3 * sizeof(int)...
+    memcpy(copyDestination, copySource, 3 * sizeof(int));
 }
 
 void distributeAndScatterEdges(std::vector<Edge> &edges, std::vector<Edge> &localEdges, int world_rank, int world_size)
@@ -164,123 +169,132 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
     distributeAndScatterEdges(edges, localEdges, world_rank, world_size);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // NOTE: i think code below is too serial in nature, need to parallelize it to somehow make it work with MPI.
-    // ======================================================
-
-    // Subset *subsets = new Subset[numVertices];
-    // int *cheapest = new int[numVertices];
-
-    // // Initialize subsets and cheapest arrays
-    // for (int v = 0; v < numVertices; v++)
-    // {
-    //     subsets[v].parent = v;
-    //     subsets[v].rank = 0;
-    //     cheapest[v] = -1;
-    // }
     // create needed data structures
-	Set* set = &(Set ) { .elements = 0, .canonicalElements = NULL, .rank =NULL };
-	newSet(set, numVertices);
-
-    // MPI_Barrier(MPI_COMM_WORLD);
+    Set *set = &(Set){.elements = 0, .canonicalElements = NULL, .rank = NULL};
+    newSet(set, numVertices);
 
     // in the beginning, each process is aware that there are |V| components.
-    // I think this needs to be global...
     int numSubtreesRemaining = numVertices;
     int localMstWeight = 0;
 
     int edgesMST = 0;
-	//int* closestEdge = (int*) malloc(vertices * 3 * sizeof(int));
     Edge *closestEdge = new Edge[numVertices];
-	//int* closestEdgeRecieved;
-    Edge *closestEdgeRecieved;
-	if (parallel) {
-		//closestEdgeRecieved = (int*) malloc(vertices * 3 * sizeof(int));
-        closestEdgeRecieved = new Edge[numVertices]
-	}
+    Edge *closestEdgeRecieved = new Edge[numVertices];
 
-	for (int i = 1; i < vertices && edgesMST < vertices - 1; i *= 2) {
-		// reset all closestEdge
-		for (int j = 0; j < vertices; j++) {
-			closestEdge[j].setWeight(INT_MAX);
-		}
+    // main loop
+    //   - edgesMST < vertices - 1 => # of edges to satisfy a MST
+    //   - i *=2 => each iteration, we double communication step size
+    for (int i = 1; i < numVertices && edgesMST < numVertices - 1; i *= 2)
+    {
+        // reset all closestEdge
+        for (int j = 0; j < numVertices; j++)
+        {
+            closestEdge[j].setWeight(INT_MAX);
+        }
 
-		// find closestEdge
-        //not sure if that is the right substitution?
-		//for (int j = 0; j < edgesPart; j++) {
-        for (int j = 0; j < localEdges.size(); j++) {
-			//int* currentEdge = &edgeListPart[j * 3];
+        // find closestEdge
+        // not sure if that is the right substitution?
+        // for (int j = 0; j < edgesPart; j++) {
+        for (int j = 0; j < localEdges.size(); j++)
+        {
+            // int* currentEdge = &edgeListPart[j * 3];
             Edge *currentEdge = &localEdges[j];
-			//int canonicalElements[2] = { findSet(set, currentEdge[0]), findSet(set, currentEdge[1]) };
+            // int canonicalElements[2] = { findSet(set, currentEdge[0]), findSet(set, currentEdge[1]) };
 
-            //THIS IS AN ARRAY THATS NOT PART OF THE SET
-            int localCanonicalElements[2] = { findSet(set, currentEdge.getFirstVertex()), findSet(set, currentEdge.getSecondVertex()) }
+            // THIS IS AN ARRAY THATS NOT PART OF THE SET
+            // int localCanonicalElements[2] = { findSet(set, currentEdge.getFirstVertex()),
+            //                                   findSet(set, currentEdge.getSecondVertex()) }
+
+            int root1 = findSet(set, currentEdge->getFirstVertex());
+            int root2 = findSet(set, currentEdge->getSecondVertex());
 
             // WTF IS A CANONICAL EDGE ?!?!?!?!??!?!?!?!?
-			// eventually update closestEdge
-			if (localCanonicalElements[0] != localCanonicalElements[1]) {
-				for (int k = 0; k < 2; k++) {
-					//bool closestEdgeNotSet = closestEdge[canonicalElements[k]* 3 + 2] == INT_MAX;
+            //    - reply: i think its an edge connecting two root components
+            //    - code below will eventually find the closest edge between two components
+            // eventually update closestEdge
+            if (root1 != root2)
+            {
+                // TODO: put this in a function instead of loop twice
+                for (int k = 0; k < 2; k++)
+                {
+                    // bool closestEdgeNotSet = closestEdge[canonicalElements[k]* 3 + 2] == INT_MAX;
                     bool closestEdgeNotSet = closestEdgeNotSet[localCanonicalElements[k]].getWeight() == INT_MAX;
-					//bool weightSmaller = currentEdge[2] < closestEdge[canonicalElements[k] * 3	+ 2];
+                    // bool weightSmaller = currentEdge[2] < closestEdge[canonicalElements[k] * 3	+ 2];
                     bool weightSmaller = currentEdge.getWeight() < closestEdge[localCanonicalElements[k]].getWeight();
-					if (closestEdgeNotSet || weightSmaller) {
+                    if (closestEdgeNotSet || weightSmaller)
+                    {
                         // i dont think this is the rigth mapping
-						//copyEdge(&closestEdge[canonicalElements[k] * 3],currentEdge);
+                        // copyEdge(&closestEdge[canonicalElements[k] * 3],currentEdge);
                         copyEdge(&closestEdge[canonicalElements[k]], currentEdge);
-					}
-				}
-			}
-		}
+                    }
+                }
+            }
+        }
 
-        //no real clue whats going on here
-		if (parallel) {
-			int from;
-			int to;
-			for (int step = 1; step < size; step *= 2) {
-				if (rank % (2 * step) == 0) {
-					from = rank + step;
-					if (from < size) {
-						MPI_Recv(closestEdgeRecieved, vertices * 3,	MPI_INT, from, 0, MPI_COMM_WORLD, &status);
+        // no real clue whats going on here
+        //     - reply: communication step, send our closestEdge we found to other processes
+        //     - does some weird/gigabrain method of jumping x2 ahead in count, and then looking at the multiples depending on the pid
+        //     - to coordinate communication between processes
+        //       - also have no real clue iether, its so | ||
+        //                                               || |_
+        int from;
+        int to;
+        for (int step = 1; step < world_size; step *= 2)
+        {
+            if (world_rank % (2 * step) == 0)
+            {
+                from = world_rank + step;
+                if (from < world_size)
+                {
+                    MPI_Recv(closestEdgeRecieved, numVertices * 3, MPI_INT, from, 0, MPI_COMM_WORLD, &status);
 
-						// combine all closestEdge parts
-						for (int i = 0; i < vertices; i++) {
-							int currentVertex = i * 3;
-							if (closestEdgeRecieved[currentVertex + 2]< closestEdge[currentVertex + 2]) {
-								copyEdge(&closestEdge[currentVertex],&closestEdgeRecieved[currentVertex]);
-							}
-						}
-					}
-				} 
-				else if (rank % step == 0) {
-					to = rank - step;
-					MPI_Send(closestEdge, vertices * 3, MPI_INT, to,0,MPI_COMM_WORLD);
-				}
-			}
-			// publish all closestEdge parts
-			MPI_Bcast(closestEdge, vertices * 3, MPI_INT, 0,MPI_COMM_WORLD);
-		}
+                    // combine all closestEdge parts
+                    for (int i = 0; i < numVertices; i++)
+                    {
+                        int currentVertex = i * 3;
+                        if (closestEdgeRecieved[currentVertex + 2] < closestEdge[currentVertex + 2])
+                        {
+                            copyEdge(&closestEdge[currentVertex], &closestEdgeRecieved[currentVertex]);
+                        }
+                    }
+                }
+            }
+            else if (world_rank % step == 0)
+            {
+                to = world_rank - step;
+                MPI_Send(closestEdge, numVertices * 3, MPI_INT, to, 0, MPI_COMM_WORLD);
+            }
+        }
 
-		// add new edges to MST
-		for (int j = 0; j < vertices; j++) {
-			if (closestEdge[j * 3 + 2] != INT_MAX) {
-                //
-				int from = closestEdge[j * 3];
-				int to = closestEdge[j * 3 + 1];
+        // publish all closestEdge parts
+        MPI_Bcast(closestEdge, numVertices * 3, MPI_INT, 0, MPI_COMM_WORLD);
 
-				// prevent adding the same edge twice
-				//if (findSet(set, from) != findSet(set, to)) {
-                if (findSet(set, closestEdge[j].getFirstVertex()) != findSet(set, closestEdge[j].getSecondVertex())) {
-					//if (rank == 0) {
-                    if (world_rank == 0) {
-						copyEdge(&mst->edgeList[edgesMST * 3],&closestEdge[j * 3]);
-					}
-					edgesMST++;
-					//unionSet(set, from, to);
+        // add new edges to MST
+        for (int j = 0; j < numVertices; j++)
+        {
+            // ?????
+            if (closestEdge[j * 3 + 2] != INT_MAX)
+            {
+                // ????
+                int from = closestEdge[j * 3];
+                int to = closestEdge[j * 3 + 1];
+
+                // prevent adding the same edge twice
+                // if (findSet(set, from) != findSet(set, to)) {
+                if (findSet(set, closestEdge[j].getFirstVertex()) != findSet(set, closestEdge[j].getSecondVertex()))
+                {
+                    // if (rank == 0) {
+                    if (world_rank == 0)
+                    {
+                        copyEdge(&mst->edgeList[edgesMST * 3], &closestEdge[j * 3]);
+                    }
+                    edgesMST++;
+                    // unionSet(set, from, to);
                     unionSet(set, closestEdge[j].getFirstVertex(), closestEdge.getSecondVertex());
-				}
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 
     // since each process will have its own mst weight after unioning everything, will we have to gather the weights? maybe not?
     // maybe send to root?
@@ -291,9 +305,6 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
         // std::cout << "Total Minimum Spanning Tree Weight: " << totalMSTWeight << std::endl;
     }
 }
-
-int world_rank = 0;
-int world_size = 0;
 
 int main()
 {
@@ -327,6 +338,7 @@ int main()
     Graph g;
     g.readGraphFromFile(input_file_path);
 
+    // NOTE no longer relevant:
     if (g.getNumVertices() < np)
     {
         std::cerr << "Number of vertices must be greater than or equal to the number of processes" << std::endl;
