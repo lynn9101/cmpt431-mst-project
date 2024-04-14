@@ -36,9 +36,10 @@ Thought of steps, adapted from the link mentioned above (can be changed if some 
 
 */
 
-Graph createGraph(int numVertices) {
+Graph createGraph(int numVertices)
+{
     Graph res(numVertices);
-    //todo: add edges by calling res.addEdge(x, y, weight) - maybe script?
+    // todo: add edges by calling res.addEdge(x, y, weight) - maybe script?
     Edge e1(0, 2, 11);
     Edge e2(1, 6, 3);
     Edge e3(1, 4, 5);
@@ -76,93 +77,117 @@ Graph createGraph(int numVertices) {
 }
 
 // Function to find the subset of an element using path compression
-int find(Subset subsets[], int i) {
-   if (subsets[i].parent != i)
-      subsets[i].parent = find(subsets, subsets[i].parent);
-   return subsets[i].parent;
+int find(Subset subsets[], int i)
+{
+    if (subsets[i].parent != i)
+        subsets[i].parent = find(subsets, subsets[i].parent);
+    return subsets[i].parent;
 }
-// // Function to find the subset of an element using path compression
-// int find(Subset subsets[], int i)
-// {
-//     if (subsets[i].parent != i)
-//         subsets[i].parent = find(subsets, subsets[i].parent);
-//     return subsets[i].parent;
-// }
 
 // Function to perform union of two subsets using union by rank
-void unionSets(Subset subsets[], int x, int y) {
-   int xroot = find(subsets, x);
-   int yroot = find(subsets, y);
-   if (subsets[xroot].rank < subsets[yroot].rank)
-      subsets[xroot].parent = yroot;
-   else if (subsets[xroot].rank > subsets[yroot].rank)
-      subsets[yroot].parent = xroot;
-   else {
-      subsets[yroot].parent = xroot;
-      subsets[xroot].rank++;
-   }
+void unionSets(Subset subsets[], int x, int y)
+{
+    int xroot = find(subsets, x);
+    int yroot = find(subsets, y);
+    if (subsets[xroot].rank < subsets[yroot].rank)
+        subsets[xroot].parent = yroot;
+    else if (subsets[xroot].rank > subsets[yroot].rank)
+        subsets[yroot].parent = xroot;
+    else
+    {
+        subsets[yroot].parent = xroot;
+        subsets[xroot].rank++;
+    }
 }
 
-void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_rank, int world_size) {
-    std::vector<Edge> mstEdgesSelected;
-    std::vector<Edge> localEdges;
-    //int numEdges = edges.size();
-
-    //assign edges to each process; root one gets the remainder.
-    int localEdgeCount = edges.size() / world_size; // num vertices also == world_size
-    std::cout << "process " << world_rank << " has " << localEdgeCount << " edges \n";
+void distributeAndScatterEdges(std::vector<Edge> &edges, std::vector<Edge> &localEdges, int world_rank, int world_size)
+{
+    int localEdgeCount = edges.size() / world_size;
     localEdges.resize(localEdgeCount);
-    //todo: deal with remainder should we have an odd number?
     MPI_Scatter(edges.data(), localEdgeCount * sizeof(Edge), MPI_BYTE, localEdges.data(), localEdgeCount * sizeof(Edge), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-    for (auto e : localEdges) {
-        std::cout << "world rank: " << world_rank << " with edge: " << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
+    // send remaining edges to the last process
+    if (world_rank == 0)
+    {
+        std::vector<Edge> remaining;
+        int remainingEdges = edges.size() % world_size;
+        remaining.insert(remaining.end(), edges.end() - remaining, edges.end());
+
+        MPI_Send(remaining.data(), remaining.size() * sizeof(Edge), MPI_BYTE, world_size - 1, 0, MPI_COMM_WORLD);
     }
+    else if (world_rank == world_size - 1)
+    {
+        MPI_Status status;
+        MPI_Probe(0, 0, MPI_COMM_WORLD, &status);
+        int count;
+        MPI_Get_count(&status, MPI_BYTE, &count);
+        std::vector<Edge> remaining(count / sizeof(Edge));
+        MPI_Recv(remaining.data(), count, MPI_BYTE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        localEdges.insert(localEdges.end(), remaining.begin(), remaining.end());
+    }
+}
 
-    //MPI_Barrier(MPI_COMM_WORLD);
+// assume a parallel version, then just use mpi for communication
+void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_rank, int world_size)
+{
+    std::vector<Edge> mstEdgesSelected;
+    std::vector<Edge> localEdges;
 
-    Subset* subsets = new Subset[numVertices];
-    int* cheapest = new int[numVertices];
+    distributeAndScatterEdges(edges, localEdges, world_rank, world_size);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // NOTE: i think code below is too serial in nature, need to parallelize it to somehow make it work with MPI.
+    // ======================================================
+
+    Subset *subsets = new Subset[numVertices];
+    int *cheapest = new int[numVertices];
 
     // Initialize subsets and cheapest arrays
-    for (int v = 0; v < numVertices; v++) {
+    for (int v = 0; v < numVertices; v++)
+    {
         subsets[v].parent = v;
         subsets[v].rank = 0;
         cheapest[v] = -1;
     }
 
-    //MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     // in the beginning, each process is aware that there are |V| components.
     // I think this needs to be global...
     int numSubtreesRemaining = numVertices;
     int localMstWeight = 0;
 
-    while (numSubtreesRemaining > 1) {
-        // iterate through all the edges in the given subset 'localEdges' and 
+    while (numSubtreesRemaining > 1)
+    {
+        // iterate through all the edges in the given subset 'localEdges' and
         // find the cheapest weighted edge for each subset.
-        for (int i = 0; i < localEdges.size(); i++) {
+        for (int i = 0; i < localEdges.size(); i++)
+        {
             int set1 = find(subsets, localEdges[i].getFirstVertex());
             int set2 = find(subsets, localEdges[i].getSecondVertex());
 
-            if (set1 != set2) {
+            if (set1 != set2)
+            {
                 if (cheapest[set1] == -1 || localEdges[cheapest[set1]].getWeight() > localEdges[i].getWeight())
-                cheapest[set1] = i;
+                    cheapest[set1] = i;
                 if (cheapest[set2] == -1 || localEdges[cheapest[set2]].getWeight() > localEdges[i].getWeight())
-                cheapest[set2] = i;
+                    cheapest[set2] = i;
             }
         }
-        
+
         // synchronization phase?
 
-        // iterate through all the subsets and if a minimum weighted edge exists for a subset, 
+        // iterate through all the subsets and if a minimum weighted edge exists for a subset,
         // we add it to the selectedEdges vector, update the MSTWeight, perform the union of the subsets, and decrement the numTrees.
         // TODO: I think we have to broadcast to all other processes when subtrees decreases?
-        for (int v = 0; v < numVertices; v++) {
-            if (cheapest[v] != -1) {
+        for (int v = 0; v < numVertices; v++)
+        {
+            if (cheapest[v] != -1)
+            {
                 int set1 = find(subsets, localEdges[cheapest[v]].getFirstVertex());
                 int set2 = find(subsets, localEdges[cheapest[v]].getSecondVertex());
-                if (set1 != set2) {
+                if (set1 != set2)
+                {
                     mstEdgesSelected.push_back(localEdges[cheapest[v]]);
                     localMstWeight += edges[cheapest[v]].getWeight();
                     unionSets(subsets, set1, set2);
@@ -172,28 +197,59 @@ void boruvkasAlgorithmMPI(std::vector<Edge> edges, int numVertices, int world_ra
                 cheapest[v] = -1;
             }
         }
-        
     }
-    
-    //since each process will have its own mst weight after unioning everything, will we have to gather the weights? maybe not?
-    //maybe send to root?
-    
-    //if we have the root process, then we print the MST accordingly.
-    if (world_rank == 0) {
-        //std::cout << "Total Minimum Spanning Tree Weight: " << totalMSTWeight << std::endl;
+
+    // since each process will have its own mst weight after unioning everything, will we have to gather the weights? maybe not?
+    // maybe send to root?
+
+    // if we have the root process, then we print the MST accordingly.
+    if (world_rank == 0)
+    {
+        // std::cout << "Total Minimum Spanning Tree Weight: " << totalMSTWeight << std::endl;
     }
 }
 
 int world_rank = 0;
 int world_size = 0;
 
-int main() {
-    // Initialize the MPI environment
-    Graph g = createGraph(10);
-    MPI_Init(NULL, NULL);
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+int main()
+{
+    cxxopts::Options options(
+        "spanning_tree_mpi",
+        "Calculate minimum spanning using distributed (mpi) execution");
 
-    boruvkasAlgorithmMPI(g.getGraphEdges(), 10, world_rank, world_size);
+    options.add_options(
+        "",
+        {
+            {"inputFile", "Input graph file path",
+             cxxopts::value<std::string>()->default_value(
+                 "./graph_inputs/random_10.txt")},
+        });
+
+    auto cl_options = options.parse(argc, argv);
+    std::string input_file_path = cl_options["inputFile"].as<std::string>();
+
+    // Initialize the MPI environment
+    int pid, np;
+    MPI_Init(NULL, NULL);
+    MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+    MPI_Comm_size(MPI_COMM_WORLD, &np);
+
+    if (np < 1)
+    {
+        std::cerr << "Number of processes must be greater than 0" << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    Graph g;
+    g.readGraphFromFile(input_file_path);
+
+    if (g.getNumVertices() < np)
+    {
+        std::cerr << "Number of vertices must be greater than or equal to the number of processes" << std::endl;
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
+    boruvkasAlgorithmMPI(g.getGraphEdges(), g.getNumVertices(), pid, np);
     return 0;
 }
