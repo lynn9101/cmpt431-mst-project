@@ -1,5 +1,6 @@
 // Define the structure to represent a subset for union-find
-struct Subset {
+struct Subset
+{
    int parent;
    int rank;
 };
