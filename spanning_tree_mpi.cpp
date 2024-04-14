@@ -215,5 +215,6 @@ int main(int argc, char **argv)
 
     MPI_Finalize();
 
+    boruvkasAlgorithmMPI(g.getGraphEdges(), g.getNumVertices(), world_rank, world_size);
     return 0;
 }
