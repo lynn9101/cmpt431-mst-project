@@ -30,7 +30,6 @@ int main(int argc, char *argv[]) {
     int process_rank;
 
     timer t1;
-    t1.start();
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
@@ -52,11 +51,18 @@ int main(int argc, char *argv[]) {
     auto cl_options = options.parse(argc, argv);
     std::string input_file_path = cl_options["inputFile"].as<std::string>();
 
+    t1.start();
     if (process_rank == 0) {
         const char* file_ctr = input_file_path.c_str();
         input_file = fopen(file_ctr, "r");
         if (input_file) {
-            fscanf(input_file, "%d", &n_vertices);
+            
+            int res = fscanf(input_file, "%d", &n_vertices);
+            if (res != 1){
+                printf("Error reading file\n");
+                return 1;
+            }
+            
         }
         printf("Number of vertices : %d\n", n_vertices);
     }
@@ -103,11 +109,11 @@ int main(int argc, char *argv[]) {
         }
 
         // For debugging purpose
-        for (int i = 0; i < n_vertices; i++) {
-            for (int j = i+1; j < n_vertices; j++) {
-                //printf("matrix(%d, %d) = %d\n", i, j, matrix[i * n_vertices + j]);
-            }
-        }
+        // for (int i = 0; i < n_vertices; i++) {
+        //     for (int j = i+1; j < n_vertices; j++) {
+        //         //printf("matrix(%d, %d) = %d\n", i, j, matrix[i * n_vertices + j]);
+        //     }
+        // }
 
         //printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
     }
@@ -120,13 +126,15 @@ int main(int argc, char *argv[]) {
     // Root sends chunks of the matrix to different processes
     recv_matrix = (int*)malloc(n_vertices_per_proc[process_rank] * n_vertices * sizeof(int));   // each process will take some rows
     MPI_Scatterv(matrix, n_vertices_per_proc, displacement, matrixType, recv_matrix, n_vertices_per_proc[process_rank], matrixType, 0, MPI_COMM_WORLD);
-    if (process_rank == 0) {
-        for (int i = 0; i < n_vertices; i++) {
-            for (int j = i+1; j < n_vertices; j++) {
-                //printf("matrix(%d, %d) = %d\n", i, j, recv_matrix[i * n_vertices + j]);
-            }
-        }
-    }
+    
+    // debugging
+    // if (process_rank == 0) {
+    //     for (int i = 0; i < n_vertices; i++) {
+    //         for (int j = i+1; j < n_vertices; j++) {
+    //             printf("matrix(%d, %d) = %d\n", i, j, recv_matrix[i * n_vertices + j]);
+    //         }
+    //     }
+    // }
 
     // Each process needs to find its own minimum tree given the set of vertices (rows)
     minimum_tree = (int*)malloc(n_vertices * sizeof(int)); // each vertex i associated with another vertex that forms edge minimum weight
@@ -182,6 +190,7 @@ int main(int argc, char *argv[]) {
         }
         printf("Sum of weights in MST : %d\n", minTotalWeight);
         std::cout << "Time taken (in seconds) : " << std::setprecision(TIME_PRECISION) << total_time_taken << "\n";
+        std::cout << total_time_taken << "\n";
     }
 
 
