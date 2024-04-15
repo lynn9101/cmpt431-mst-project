@@ -12,7 +12,7 @@ SCRIPT= graph_generator
 SERIAL= kruskal_serial boruvka_serial
 PARALLEL= kruskal_parallel
 MPI= prim_mpi
-ALL= $(SCRIPT) $(SERIAL) $(PARALLEL) $(MPI)
+ALL=  $(SCRIPT) $(SERIAL) $(PARALLEL) $(MPI)
 
 
 all : $(ALL)
