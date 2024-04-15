@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);   // process ID
-    printf("num process : %d\n", num_processes);
 
     // Initialize command line arguments
     cxxopts::Options options(
@@ -64,7 +63,7 @@ int main(int argc, char *argv[]) {
             }
             
         }
-        printf("Number of vertices : %d\n", n_vertices);
+        printf("Number of processes : %d\n", num_processes);
     }
 
     // Root process broadcasts total number of vertices to all other processes
@@ -190,7 +189,6 @@ int main(int argc, char *argv[]) {
         }
         printf("Sum of weights in MST : %d\n", minTotalWeight);
         std::cout << "Time taken (in seconds) : " << std::setprecision(TIME_PRECISION) << total_time_taken << "\n";
-        std::cout << total_time_taken << "\n";
     }
 
 

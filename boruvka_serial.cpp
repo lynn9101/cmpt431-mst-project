@@ -148,14 +148,14 @@ int main(int argc, char *argv[]) {
     t1.start();
     g.sort();
     MinSpanningTree mst = sequentialBoruvka(g);
-    int time = t1.stop();
+    double time = t1.stop();
     std::vector<Edge> resultTreeEdges = mst.tree;
     std::cout << "Minimum spanning tree\n";
     for (auto e : resultTreeEdges) {
         std::cout << e.getFirstVertex() << " to " << e.getSecondVertex() << " with weight " << e.getWeight() << std::endl;
     }
     std::cout << "Sum of weights in MST : " << mst.sumWeight << std::endl;
-    std::cout << "Time taken (in seconds) : " << time << std::endl;
+    std::cout << "Time taken (in seconds) : " << std::setprecision(TIME_PRECISION) << time << std::endl;
 
     return 0;
 }
