@@ -1,4 +1,5 @@
-# General Instructions to Run Program
+# Minimum Spanning Tree Implementation
+## General Instructions to Run Program
 1. Sample input graph with 10 vertices is under ```./graph_inputs/random_10.txt```
 
 -> If you want to generate your own input graph, run:
