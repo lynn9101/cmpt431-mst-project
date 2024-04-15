@@ -23,6 +23,6 @@ For example,
 
 Default number of threads is set to 2.
 
-4. Run distrubuted code:
+4. Run distributed code:
 
 ```./prim_mpi --inputFile <path to the graph input>```
